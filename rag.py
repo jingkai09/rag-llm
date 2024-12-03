@@ -9,7 +9,7 @@ rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
 # URL of the FastAPI application
-public_url = "https://honest-games-shout.loca.lt"
+public_url = "https://tricky-hats-wear.loca.lt"
 
 # Display available rerank methods for user selection
 st.title("RAG System Configuration")
