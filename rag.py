@@ -6,12 +6,13 @@ temperature = 0.50
 k = 10
 overlapping = 0.5  # Default value for chunk overlapping
 rerank_method = "similarity"  # Default rerank method (can be changed)
+keywords = ""  # Default empty keywords
 
 # URL of the FastAPI application
 public_url = "https://honest-games-shout.loca.lt"
 
 # Display available rerank methods for user selection
-st.title("RAG Implementation Gpt4o-mini")
+st.title("RAG System Configuration")
 st.write("Select the reranking method:")
 
 rerank_method = st.selectbox(
@@ -25,6 +26,9 @@ st.subheader("Configure the RAG pipeline parameters:")
 temperature = st.slider("Temperature", 0.0, 1.0, 0.5)
 k = st.slider("Top k", 1, 20, 10)
 overlapping = st.slider("Chunk Overlap", 0, 100, 50)
+
+# Keywords input
+keywords = st.text_input("Enter Keywords (Optional)", "")
 
 # Set parameters on the server
 response = requests.post(f"{public_url}/set-parameters", json={
@@ -43,7 +47,8 @@ else:
 user_query = st.text_input("Enter your query:")
 
 if user_query:
-    response = requests.post(f"{public_url}/query", params={"query": user_query})
+    # Pass the query and keywords to the server
+    response = requests.post(f"{public_url}/query", params={"query": user_query, "keywords": keywords})
     
     st.subheader("Response from server:")
     if response.content:
