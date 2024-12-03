@@ -9,7 +9,7 @@ rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
 # URL of the FastAPI application
-public_url = "https://cyan-loops-press.loca.lt"  # Replace with the actual public URL of the FastAPI server
+public_url = "https://honest-peaches-ask.loca.lt"  # Replace with the actual public URL of the FastAPI server
 
 # Display available rerank methods for user selection
 st.title("RAG System Configuration")
@@ -49,9 +49,16 @@ if st.button("Update Parameters"):
 st.subheader("Ask a Question")
 user_query = st.text_input("Enter your query:")
 
+# Option to include conversation history in the response
+include_history = st.checkbox("Include Conversation History", value=False)
+
 if user_query:
-    # Pass the query and keywords to the server
-    response = requests.post(f"{public_url}/query", params={"query": user_query, "keywords": keywords})
+    # Pass the query, keywords, and include_history flag to the server
+    response = requests.post(f"{public_url}/query", params={
+        "query": user_query, 
+        "keywords": keywords,
+        "include_history": include_history
+    })
     
     st.subheader("Response from server:")
     if response.status_code == 200 and response.content:
@@ -74,20 +81,21 @@ if user_query:
     else:
         st.warning("Received an empty response or error from the server.")
 
-# Display conversation history
-st.subheader("Conversation History (Last 10 Queries)")
-history_response = requests.get(f"{public_url}/conversation-history")
+# Display conversation history (if selected)
+if include_history:
+    st.subheader("Conversation History (Last 10 Queries)")
+    history_response = requests.get(f"{public_url}/conversation-history")
 
-if history_response.status_code == 200:
-    history = history_response.json().get("conversation_history", [])
-    if history:
-        for i, convo in enumerate(history):
-            if i >= 10:  # Limit to last 10 entries
-                break
-            st.write(f"**Query {i + 1}:** {convo['query']}")
-            st.write(f"**Answer {i + 1}:** {convo['answer']}")
-            st.write("---")
+    if history_response.status_code == 200:
+        history = history_response.json().get("conversation_history", [])
+        if history:
+            for i, convo in enumerate(history):
+                if i >= 10:  # Limit to last 10 entries
+                    break
+                st.write(f"**Query {i + 1}:** {convo['query']}")
+                st.write(f"**Answer {i + 1}:** {convo['answer']}")
+                st.write("---")
+        else:
+            st.write("No conversation history available.")
     else:
-        st.write("No conversation history available.")
-else:
-    st.error(f"Error fetching conversation history: {history_response.text}")
+        st.error(f"Error fetching conversation history: {history_response.text}")
