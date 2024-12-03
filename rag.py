@@ -9,7 +9,7 @@ rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
 # URL of the FastAPI application
-public_url = "https://dull-rings-like.loca.lt"  # Replace with the actual public URL of the FastAPI server
+public_url = "https://stale-rabbits-melt.loca.lt"  # Replace with the actual public URL of your FastAPI server
 
 # Display available rerank methods for user selection
 st.title("RAG System Configuration")
@@ -43,7 +43,7 @@ if st.button("Update Parameters"):
     if response.status_code == 200:
         st.success("Parameters updated successfully.")
     else:
-        st.error(f"Failed to update parameters. Status code: {response.status_code}")
+        st.error(f"Failed to update parameters. Status code: {response.status_code} - {response.text}")
 
 # User query input
 st.subheader("Ask a Question")
@@ -52,16 +52,16 @@ user_query = st.text_input("Enter your query:")
 if user_query:
     # Pass the query and keywords to the server
     response = requests.post(f"{public_url}/query", params={"query": user_query, "keywords": keywords})
-    
+
     st.subheader("Response from server:")
     if response.status_code == 200 and response.content:
         try:
             result = response.json()
-            
+
             # Display the query answer
             st.write(f"**Answer to your query:**")
             st.write(result.get("answer", "No answer available."))
-            
+
             # Display chunks used for answering
             st.write(f"**Chunks Used:**")
             for i, chunk in enumerate(result["chunks"]):
