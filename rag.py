@@ -10,7 +10,7 @@ rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
 # Fetch public URL from environment variable
-public_url = os.getenv("FASTAPI_URL", "http://localhost:8000")
+public_url = os.getenv("FASTAPI_URL", "https://big-clowns-listen.loca.lt")
 
 # Display available rerank methods for user selection
 st.title("RAG System Configuration")
@@ -87,20 +87,23 @@ if user_query:
         except requests.exceptions.RequestException as e:
             st.error(f"Error processing the query: {e}")
 
-# Display conversation history
-st.subheader("Conversation History (Last 10 Queries)")
-try:
-    history_response = requests.get(f"{public_url}/conversation-history")
-    history_response.raise_for_status()
+# Option to display conversation history
+st.subheader("Conversation History (Optional)")
+show_history = st.checkbox("Show Conversation History")
 
-    if history_response.status_code == 200:
-        history = history_response.json().get("conversation_history", [])[-10:]
-        if history:
-            for i, convo in enumerate(history):
-                st.write(f"**Query {i + 1}:** {convo['query']}")
-                st.write(f"**Answer {i + 1}:** {convo['answer']}")
-                st.write("---")
-        else:
-            st.write("No conversation history available.")
-except requests.exceptions.RequestException as e:
-    st.error(f"Error fetching conversation history: {e}")
+if show_history:
+    try:
+        history_response = requests.get(f"{public_url}/conversation-history")
+        history_response.raise_for_status()
+
+        if history_response.status_code == 200:
+            history = history_response.json().get("conversation_history", [])[-10:]
+            if history:
+                for i, convo in enumerate(history):
+                    st.write(f"**Query {i + 1}:** {convo['query']}")
+                    st.write(f"**Answer {i + 1}:** {convo['answer']}")
+                    st.write("---")
+            else:
+                st.write("No conversation history available.")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching conversation history: {e}")
