@@ -10,7 +10,7 @@ rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
 # Fetch public URL from environment variable
-public_url = "https://yellow-moons-join.loca.lt"
+public_url = "https://hungry-falcons-glow.loca.lt"
 
 # Display available rerank methods for user selection
 st.title("RAG System Configuration")
@@ -78,7 +78,7 @@ if user_query:
                     st.write(f"**Chunks Used:**")
                     for i, chunk in enumerate(result["chunks"]):
                         st.write(f"**Source**: {chunk['source']} | **Score**: {chunk['score']}")
-                        st.write(f"Content: {chunk['content'][:500]}...")  # Truncate content to 500 chars
+                        st.write(f"Content: {chunk['content'][:200]}...")  # Truncate content to 500 chars
                         st.markdown("---")
                 except ValueError:
                     st.error("Error parsing response.")
