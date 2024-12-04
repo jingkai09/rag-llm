@@ -111,20 +111,20 @@ if show_history:
 
                 # Parse the JSON response
                 history = history_response.json().get("conversation_history", [])
-                
+
                 if history:
                     # Iterate through history items safely
                     for i, convo in enumerate(history):
-                        # Check if each entry has all the expected fields
+                        # Check if each entry is a dictionary
                         if isinstance(convo, dict):
                             query = convo.get('query', 'No query available')
                             answer = convo.get('answer', 'No answer available')
                             timestamp = convo.get('timestamp', 'No timestamp available')
-                            
+
                             # Handle timestamp conversion if it's present
                             if isinstance(timestamp, (int, float)):
                                 timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                            
+
                             # Display conversation history with proper labels in the sidebar
                             st.sidebar.write(f"**History {i + 1}:**")
                             st.sidebar.write(f"**Timestamp:** {timestamp}")
@@ -132,7 +132,7 @@ if show_history:
                             st.sidebar.write(f"**Answer {i + 1}:** {answer}")
                             st.sidebar.write("---")
                         else:
-                            st.sidebar.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
+                            st.warning(f"Invalid conversation entry at index {i + 1}: Expected a dictionary but found: {type(convo).__name__}")
                 else:
                     st.sidebar.write("No conversation history available.")
             except ValueError:
@@ -153,27 +153,27 @@ if show_history:
             try:
                 # Parse the JSON response
                 history = history_response.json().get("conversation_history", [])
-                
+
                 if history:
                     # Iterate through history items safely
                     for i, convo in enumerate(history):
-                        # Check if each entry has all the expected fields
+                        # Check if each entry is a dictionary
                         if isinstance(convo, dict):
                             query = convo.get('query', 'No query available')
                             answer = convo.get('answer', 'No answer available')
                             timestamp = convo.get('timestamp', 'No timestamp available')
-                            
+
                             # Handle timestamp conversion if it's present
                             if isinstance(timestamp, (int, float)):
                                 timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                            
+
                             # Display conversation history with proper labels
                             with st.expander(f"History {i + 1} - {timestamp}"):
                                 st.write(f"**Query:** {query}")
                                 st.write(f"**Answer:** {answer}")
                                 st.markdown("---")
                         else:
-                            st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
+                            st.warning(f"Invalid conversation entry at index {i + 1}: Expected a dictionary but found: {type(convo).__name__}")
                 else:
                     st.write("No conversation history available.")
             except ValueError:
