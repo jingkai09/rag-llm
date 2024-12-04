@@ -13,27 +13,27 @@ keywords = ""  # Default empty keywords
 # Fetch public URL from environment variable
 public_url = "https://hungry-falcons-glow.loca.lt"
 
-# Display available rerank methods for user selection
-st.title("RAG System Configuration")
-st.write("Select the reranking method:")
+# Move parameters to the sidebar
+st.sidebar.title("RAG System Configuration")
+st.sidebar.write("Select the reranking method:")
 
-rerank_method = st.selectbox(
+rerank_method = st.sidebar.selectbox(
     "Rerank Method",
     ["similarity", "importance"],
     index=0  # Default to similarity
 )
 
-# Configure the RAG pipeline parameters
-st.subheader("Configure the RAG pipeline parameters:")
-temperature = st.slider("Temperature", 0.0, 1.0, 0.5)
-k = st.slider("Top k", 1, 20, 10)
-overlapping = st.slider("Chunk Overlap", 0, 100, 50)
+# Configure the RAG pipeline parameters in the sidebar
+st.sidebar.subheader("Configure the RAG pipeline parameters:")
+temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.5)
+k = st.sidebar.slider("Top k", 1, 20, 10)
+overlapping = st.sidebar.slider("Chunk Overlap", 0, 100, 50)
 
-# Keywords input (comma-separated)
-keywords = st.text_input("Enter Keywords (Optional)", "")
+# Keywords input (comma-separated) in the sidebar
+keywords = st.sidebar.text_input("Enter Keywords (Optional)", "")
 
 # Set parameters on the server
-if st.button("Update Parameters"):
+if st.sidebar.button("Update Parameters"):
     if not keywords:
         keywords = ""  # Ensure keywords are never None
     try:
@@ -47,14 +47,15 @@ if st.button("Update Parameters"):
         response.raise_for_status()  # Will raise an error for bad responses (status codes 4xx or 5xx)
 
         if response.status_code == 200:
-            st.success("Parameters updated successfully.")
+            st.sidebar.success("Parameters updated successfully.")
         else:
-            st.error(f"Failed to update parameters. Status code: {response.status_code} - {response.text}")
+            st.sidebar.error(f"Failed to update parameters. Status code: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
-        st.error(f"Error communicating with the server: {e}")
+        st.sidebar.error(f"Error communicating with the server: {e}")
 
-# User query input
-st.subheader("Ask a Question")
+# Main content: Ask a Question
+st.title("Ask a Question")
+
 user_query = st.text_input("Enter your query:")
 
 if user_query:
@@ -88,9 +89,9 @@ if user_query:
         except requests.exceptions.RequestException as e:
             st.error(f"Error processing the query: {e}")
 
-# Option to display conversation history
-st.subheader("Conversation History (Optional)")
-show_history = st.checkbox("Show Conversation History")
+# Sidebar: Option to display conversation history
+st.sidebar.subheader("Conversation History (Optional)")
+show_history = st.sidebar.checkbox("Show Conversation History")
 
 if show_history:
     try:
@@ -100,8 +101,8 @@ if show_history:
         if history_response.status_code == 200:
             try:
                 # Log the raw response content for debugging
-                st.write("Raw Response from Server:")
-                st.write(history_response.text)  # Show the raw response content
+                st.sidebar.write("Raw Response from Server:")
+                st.sidebar.write(history_response.text)  # Show the raw response content
 
                 # Parse the JSON response
                 history = history_response.json().get("conversation_history", [])
@@ -119,19 +120,19 @@ if show_history:
                             if isinstance(timestamp, (int, float)):
                                 timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
                             
-                            # Display conversation history with proper labels
-                            st.write(f"**History {i + 1}:**")
-                            st.write(f"**Timestamp:** {timestamp}")
-                            st.write(f"**Query {i + 1}:** {query}")
-                            st.write(f"**Answer {i + 1}:** {answer}")
-                            st.write("---")
+                            # Display conversation history with proper labels in the sidebar
+                            st.sidebar.write(f"**History {i + 1}:**")
+                            st.sidebar.write(f"**Timestamp:** {timestamp}")
+                            st.sidebar.write(f"**Query {i + 1}:** {query}")
+                            st.sidebar.write(f"**Answer {i + 1}:** {answer}")
+                            st.sidebar.write("---")
                         else:
-                            st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
+                            st.sidebar.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
                 else:
-                    st.write("No conversation history available.")
+                    st.sidebar.write("No conversation history available.")
             except ValueError:
-                st.error("Error parsing the conversation history response.")
+                st.sidebar.error("Error parsing the conversation history response.")
         else:
-            st.warning("Failed to fetch conversation history.")
+            st.sidebar.warning("Failed to fetch conversation history.")
     except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching conversation history: {e}")
+        st.sidebar.error(f"Error fetching conversation history: {e}")
