@@ -10,7 +10,7 @@ rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
 # Fetch public URL from environment variable
-public_url = os.getenv("FASTAPI_URL", "https://big-clowns-listen.loca.lt")
+public_url = "https://big-clowns-listen.loca.lt"
 
 # Display available rerank methods for user selection
 st.title("RAG System Configuration")
