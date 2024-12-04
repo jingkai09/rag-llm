@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 import requests
+from datetime import datetime
 
 # Initial parameters
 temperature = 0.50
@@ -105,6 +106,12 @@ if show_history:
                     # Iterate through history items safely
                     for i, convo in enumerate(history):
                         if isinstance(convo, dict):  # Ensure convo is a dictionary
+                            # Get the timestamp, assuming it's part of the conversation data
+                            timestamp = convo.get('timestamp', 'No timestamp available')
+                            timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S') if isinstance(timestamp, (int, float)) else timestamp
+                            
+                            st.write(f"**History {i + 1}:**")
+                            st.write(f"**Timestamp:** {timestamp}")
                             st.write(f"**Query {i + 1}:** {convo.get('query', 'No query available')}")
                             st.write(f"**Answer {i + 1}:** {convo.get('answer', 'No answer available')}")
                             st.write("---")
