@@ -13,7 +13,7 @@ keywords = ""  # Default empty keywords
 # Fetch public URL from environment variable
 public_url = "https://hungry-falcons-glow.loca.lt"
 
-# Move parameters to the sidebar
+# Sidebar for Parameters
 st.sidebar.title("RAG System Configuration")
 st.sidebar.write("Select the reranking method:")
 
@@ -54,40 +54,45 @@ if st.sidebar.button("Update Parameters"):
         st.sidebar.error(f"Error communicating with the server: {e}")
 
 # Main content: Ask a Question
-st.title("Ask a Question")
+st.title("RAG")
 
 user_query = st.text_input("Enter your query:")
 
-if user_query:
-    with st.spinner('Processing your query...'):
-        try:
-            # Pass the query and keywords to the server
-            response = requests.post(f"{public_url}/query", params={"query": user_query, "keywords": keywords})
-            response.raise_for_status()
+# Button to submit query
+if st.button("Submit Query"):
+    if user_query:
+        with st.spinner('Processing your query...'):
+            try:
+                # Pass the query and keywords to the server
+                response = requests.post(f"{public_url}/query", params={"query": user_query, "keywords": keywords})
+                response.raise_for_status()
 
-            st.subheader("Response from server:")
-            if response.status_code == 200 and response.content:
-                try:
-                    result = response.json()
+                st.subheader("Response from server:")
+                if response.status_code == 200 and response.content:
+                    try:
+                        result = response.json()
 
-                    # Display the query answer
-                    if 'answer' in result:
-                        st.write(f"**Answer to your query:** {result['answer']}")
-                    else:
-                        st.error("No valid answer received.")
+                        # Display the query answer
+                        if 'answer' in result:
+                            st.write(f"**Answer to your query:** {result['answer']}")
+                        else:
+                            st.error("No valid answer received.")
 
-                    # Display chunks used for answering
-                    st.write(f"**Chunks Used:**")
-                    for i, chunk in enumerate(result["chunks"]):
-                        st.write(f"**Source**: {chunk['source']} | **Score**: {chunk['score']}")
-                        st.write(f"Content: {chunk['content'][:200]}...")  # Truncate content to 500 chars
-                        st.markdown("---")
-                except ValueError:
-                    st.error("Error parsing response.")
-            else:
-                st.warning("Received an empty response or error from the server.")
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error processing the query: {e}")
+                        # Display chunks used for answering in an organized way
+                        if 'chunks' in result:
+                            st.write(f"**Chunks Used:**")
+                            for i, chunk in enumerate(result["chunks"]):
+                                with st.expander(f"Chunk {i + 1}"):
+                                    st.markdown(f"**Source**: {chunk['source']}")
+                                    st.markdown(f"**Score**: {chunk['score']}")
+                                    st.write(f"**Content**: {chunk['content'][:500]}...")  # Truncate content to 500 chars for brevity
+                                    st.markdown("---")
+                    except ValueError:
+                        st.error("Error parsing response.")
+                else:
+                    st.warning("Received an empty response or error from the server.")
+            except requests.exceptions.RequestException as e:
+                st.error(f"Error processing the query: {e}")
 
 # Sidebar: Option to display conversation history
 st.sidebar.subheader("Conversation History (Optional)")
