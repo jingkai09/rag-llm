@@ -141,3 +141,44 @@ if show_history:
             st.sidebar.warning("Failed to fetch conversation history.")
     except requests.exceptions.RequestException as e:
         st.sidebar.error(f"Error fetching conversation history: {e}")
+
+# Display conversation history below the query output in the main area
+if show_history:
+    st.subheader("Conversation History:")
+    try:
+        history_response = requests.get(f"{public_url}/conversation-history")
+        history_response.raise_for_status()
+
+        if history_response.status_code == 200:
+            try:
+                # Parse the JSON response
+                history = history_response.json().get("conversation_history", [])
+                
+                if history:
+                    # Iterate through history items safely
+                    for i, convo in enumerate(history):
+                        # Check if each entry has all the expected fields
+                        if isinstance(convo, dict):
+                            query = convo.get('query', 'No query available')
+                            answer = convo.get('answer', 'No answer available')
+                            timestamp = convo.get('timestamp', 'No timestamp available')
+                            
+                            # Handle timestamp conversion if it's present
+                            if isinstance(timestamp, (int, float)):
+                                timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                            
+                            # Display conversation history with proper labels
+                            with st.expander(f"History {i + 1} - {timestamp}"):
+                                st.write(f"**Query:** {query}")
+                                st.write(f"**Answer:** {answer}")
+                                st.markdown("---")
+                        else:
+                            st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
+                else:
+                    st.write("No conversation history available.")
+            except ValueError:
+                st.error("Error parsing the conversation history response.")
+        else:
+            st.warning("Failed to fetch conversation history.")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching conversation history: {e}")
