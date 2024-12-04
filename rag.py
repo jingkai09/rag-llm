@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 
@@ -8,8 +9,8 @@ overlapping = 50  # Default value for chunk overlapping
 rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
-# URL of the FastAPI application
-public_url = "https://rich-parks-juggle.loca.lt"  # Replace with the actual public URL of your FastAPI server
+# Fetch public URL from environment variable
+public_url = os.getenv("FASTAPI_URL", "https://rich-parks-juggle.loca.lt")
 
 # Display available rerank methods for user selection
 st.title("RAG System Configuration")
@@ -68,14 +69,16 @@ if user_query:
                     result = response.json()
 
                     # Display the query answer
-                    st.write(f"**Answer to your query:** {result.get('answer', 'No answer available.')}")
+                    if 'answer' in result:
+                        st.write(f"**Answer to your query:** {result['answer']}")
+                    else:
+                        st.error("No valid answer received.")
 
                     # Display chunks used for answering
                     st.write(f"**Chunks Used:**")
                     for i, chunk in enumerate(result["chunks"]):
                         st.write(f"**Source**: {chunk['source']} | **Score**: {chunk['score']}")
-                        st.write(f"Content: {chunk['content']}")
-                        st.write(f"Keywords Matched: {chunk.get('keywords', 'None')}")
+                        st.write(f"Content: {chunk['content'][:500]}...")  # Truncate content to 500 chars
                         st.markdown("---")
                 except ValueError:
                     st.error("Error parsing response.")
