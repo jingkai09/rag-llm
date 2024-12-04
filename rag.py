@@ -99,24 +99,34 @@ if show_history:
 
         if history_response.status_code == 200:
             try:
+                # Log the raw response content for debugging
+                st.write("Raw Response from Server:")
+                st.write(history_response.text)  # Show the raw response content
+
                 # Parse the JSON response
                 history = history_response.json().get("conversation_history", [])
                 
                 if history:
                     # Iterate through history items safely
                     for i, convo in enumerate(history):
-                        if isinstance(convo, dict):  # Ensure convo is a dictionary
-                            # Get the timestamp, assuming it's part of the conversation data
+                        # Check if each entry has all the expected fields
+                        if isinstance(convo, dict):
+                            query = convo.get('query', 'No query available')
+                            answer = convo.get('answer', 'No answer available')
                             timestamp = convo.get('timestamp', 'No timestamp available')
-                            timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S') if isinstance(timestamp, (int, float)) else timestamp
                             
+                            # Handle timestamp conversion if it's present
+                            if isinstance(timestamp, (int, float)):
+                                timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                            
+                            # Display conversation history with proper labels
                             st.write(f"**History {i + 1}:**")
                             st.write(f"**Timestamp:** {timestamp}")
-                            st.write(f"**Query {i + 1}:** {convo.get('query', 'No query available')}")
-                            st.write(f"**Answer {i + 1}:** {convo.get('answer', 'No answer available')}")
+                            st.write(f"**Query {i + 1}:** {query}")
+                            st.write(f"**Answer {i + 1}:** {answer}")
                             st.write("---")
                         else:
-                            st.write(f"Invalid conversation entry: {convo}")
+                            st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
                 else:
                     st.write("No conversation history available.")
             except ValueError:
