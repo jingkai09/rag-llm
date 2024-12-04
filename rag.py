@@ -98,53 +98,8 @@ if st.button("Submit Query"):
 st.sidebar.subheader("Conversation History (Optional)")
 show_history = st.sidebar.checkbox("Show Conversation History")
 
+# Display conversation history in the main content area if selected
 if show_history:
-    try:
-        history_response = requests.get(f"{public_url}/conversation-history")
-        history_response.raise_for_status()
-
-        if history_response.status_code == 200:
-            try:
-                # Log the raw response content for debugging
-                st.sidebar.write("Raw Response from Server:")
-                st.sidebar.write(history_response.text)  # Show the raw response content
-
-                # Parse the JSON response
-                history = history_response.json().get("conversation_history", [])
-                
-                if history:
-                    # Iterate through history items safely
-                    for i, convo in enumerate(history):
-                        # Check if each entry has all the expected fields
-                        if isinstance(convo, dict):
-                            query = convo.get('query', 'No query available')
-                            answer = convo.get('answer', 'No answer available')
-                            timestamp = convo.get('timestamp', 'No timestamp available')
-                            
-                            # Handle timestamp conversion if it's present
-                            if isinstance(timestamp, (int, float)):
-                                timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                            
-                            # Display conversation history with proper labels in the sidebar
-                            st.sidebar.write(f"**History {i + 1}:**")
-                            st.sidebar.write(f"**Timestamp:** {timestamp}")
-                            st.sidebar.write(f"**Query {i + 1}:** {query}")
-                            st.sidebar.write(f"**Answer {i + 1}:** {answer}")
-                            st.sidebar.write("---")
-                        else:
-                            st.sidebar.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
-                else:
-                    st.sidebar.write("No conversation history available.")
-            except ValueError:
-                st.sidebar.error("Error parsing the conversation history response.")
-        else:
-            st.sidebar.warning("Failed to fetch conversation history.")
-    except requests.exceptions.RequestException as e:
-        st.sidebar.error(f"Error fetching conversation history: {e}")
-
-# Display conversation history below the query output in the main area
-if show_history:
-    st.subheader("Conversation History:")
     try:
         history_response = requests.get(f"{public_url}/conversation-history")
         history_response.raise_for_status()
@@ -155,6 +110,7 @@ if show_history:
                 history = history_response.json().get("conversation_history", [])
                 
                 if history:
+                    st.subheader("Conversation History:")
                     # Iterate through history items safely
                     for i, convo in enumerate(history):
                         # Check if each entry has all the expected fields
