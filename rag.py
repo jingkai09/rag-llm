@@ -97,13 +97,24 @@ if show_history:
         history_response.raise_for_status()
 
         if history_response.status_code == 200:
-            history = history_response.json().get("conversation_history", [])[-10:]
-            if history:
-                for i, convo in enumerate(history):
-                    st.write(f"**Query {i + 1}:** {convo['query']}")
-                    st.write(f"**Answer {i + 1}:** {convo['answer']}")
-                    st.write("---")
-            else:
-                st.write("No conversation history available.")
+            try:
+                # Parse the JSON response
+                history = history_response.json().get("conversation_history", [])
+                
+                if history:
+                    # Iterate through history items safely
+                    for i, convo in enumerate(history):
+                        if isinstance(convo, dict):  # Ensure convo is a dictionary
+                            st.write(f"**Query {i + 1}:** {convo.get('query', 'No query available')}")
+                            st.write(f"**Answer {i + 1}:** {convo.get('answer', 'No answer available')}")
+                            st.write("---")
+                        else:
+                            st.write(f"Invalid conversation entry: {convo}")
+                else:
+                    st.write("No conversation history available.")
+            except ValueError:
+                st.error("Error parsing the conversation history response.")
+        else:
+            st.warning("Failed to fetch conversation history.")
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching conversation history: {e}")
