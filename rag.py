@@ -113,16 +113,16 @@ if show_history:
                     st.subheader("Conversation History:")
                     # Iterate through history items safely
                     for i, convo in enumerate(history):
-                        # Check if each entry has all the expected fields
-                        if isinstance(convo, dict):
+                        # Ensure each entry is a dictionary
+                        if isinstance(convo, dict):  
                             query = convo.get('query', 'No query available')
                             answer = convo.get('answer', 'No answer available')
                             timestamp = convo.get('timestamp', 'No timestamp available')
-                            
-                            # Handle timestamp conversion if it's present
+
+                            # Handle timestamp conversion if numeric
                             if isinstance(timestamp, (int, float)):
                                 timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                            
+
                             # Display conversation history with proper labels
                             with st.expander(f"History {i + 1} - {timestamp}"):
                                 st.write(f"**Query:** {query}")
@@ -132,9 +132,9 @@ if show_history:
                             st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
                 else:
                     st.write("No conversation history available.")
-            except ValueError:
-                st.error("Error parsing the conversation history response.")
+            except ValueError as parse_error:
+                st.error(f"Error parsing the conversation history response: {parse_error}")
         else:
-            st.warning("Failed to fetch conversation history.")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching conversation history: {e}")
+            st.warning(f"Failed to fetch conversation history. Status code: {history_response.status_code}")
+    except requests.exceptions.RequestException as request_error:
+        st.error(f"Error fetching conversation history: {request_error}")
