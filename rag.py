@@ -98,7 +98,7 @@ if st.button("Submit Query"):
 st.sidebar.subheader("Conversation History (Optional)")
 show_history = st.sidebar.checkbox("Show Conversation History")
 
-# Display conversation history in the main content area if selected
+# Display conversation history in a dropdown (select box) if selected
 if show_history:
     try:
         history_response = requests.get(f"{public_url}/conversation-history")
@@ -106,47 +106,51 @@ if show_history:
 
         if history_response.status_code == 200:
             try:
-                # Log the raw response to inspect its structure
-                st.write("Raw response from /conversation-history:", history_response.json())
-
                 # Parse the JSON response
                 history = history_response.json().get("conversation_history", [])
                 
                 if history:
                     st.subheader("Conversation History:")
-
+                    
                     # Chunk the history into smaller groups (let's say 3 entries per chunk)
                     chunk_size = 3
+                    chunks = []
                     for chunk_start in range(0, len(history), chunk_size):
                         chunk_end = chunk_start + chunk_size
                         history_chunk = history[chunk_start:chunk_end]
+                        chunks.append(history_chunk)
+                    
+                    # Create a dropdown (selectbox) for users to choose a chunk
+                    chunk_options = [f"History Chunk {i + 1}" for i in range(len(chunks))]
+                    selected_chunk = st.selectbox("Select a conversation chunk to view:", chunk_options)
 
-                        with st.expander(f"History Chunk {chunk_start // chunk_size + 1}"):
-                            for i, convo in enumerate(history_chunk):
-                                # Log each conversation entry to check its type
-                                st.write(f"Type of conversation entry at index {i}: {type(convo)}")
+                    # Display the selected chunk's content
+                    if selected_chunk:
+                        selected_chunk_index = chunk_options.index(selected_chunk)
+                        selected_history_chunk = chunks[selected_chunk_index]
+                        
+                        for i, convo in enumerate(selected_history_chunk):
+                            if isinstance(convo, dict):  # If the entry is a dictionary
+                                query = convo.get('query', 'No query available')
+                                answer = convo.get('answer', 'No answer available')
+                                timestamp = convo.get('timestamp', 'No timestamp available')
 
-                                if isinstance(convo, dict):  # If the entry is a dictionary
-                                    query = convo.get('query', 'No query available')
-                                    answer = convo.get('answer', 'No answer available')
-                                    timestamp = convo.get('timestamp', 'No timestamp available')
+                                # Handle timestamp conversion if numeric
+                                if isinstance(timestamp, (int, float)):
+                                    timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
-                                    # Handle timestamp conversion if numeric
-                                    if isinstance(timestamp, (int, float)):
-                                        timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                                # Display the conversation entries
+                                st.write(f"**Query:** {query}")
+                                st.write(f"**Answer:** {answer}")
+                                st.write(f"**Timestamp:** {timestamp}")
+                                st.markdown("---")
 
-                                    # Display the conversation entries
-                                    st.write(f"**Query:** {query}")
-                                    st.write(f"**Answer:** {answer}")
-                                    st.write(f"**Timestamp:** {timestamp}")
-                                    st.markdown("---")
-
-                                elif isinstance(convo, str):  # If the entry is a string
-                                    st.warning(f"Conversation entry at index {i} is a string. Displaying as plain text.")
-                                    st.write(convo)
-                                    st.markdown("---")
-                                else:
-                                    st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary or string.")
+                            elif isinstance(convo, str):  # If the entry is a string
+                                st.warning(f"Conversation entry at index {i} is a string. Displaying as plain text.")
+                                st.write(convo)
+                                st.markdown("---")
+                            else:
+                                st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary or string.")
                 else:
                     st.write("No conversation history available.")
             except ValueError as parse_error:
