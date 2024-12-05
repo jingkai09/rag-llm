@@ -114,36 +114,39 @@ if show_history:
                 
                 if history:
                     st.subheader("Conversation History:")
-                    last_query = None
-                    for i, convo in enumerate(history):
-                        # Log each conversation entry to check its type
-                        st.write(f"Type of conversation entry at index {i}: {type(convo)}")
 
-                        if isinstance(convo, dict):  # If the entry is a dictionary
-                            query = convo.get('query', 'No query available')
-                            answer = convo.get('answer', 'No answer available')
-                            timestamp = convo.get('timestamp', 'No timestamp available')
+                    # Chunk the history into smaller groups (let's say 3 entries per chunk)
+                    chunk_size = 3
+                    for chunk_start in range(0, len(history), chunk_size):
+                        chunk_end = chunk_start + chunk_size
+                        history_chunk = history[chunk_start:chunk_end]
 
-                            # Handle timestamp conversion if numeric
-                            if isinstance(timestamp, (int, float)):
-                                timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                        with st.expander(f"History Chunk {chunk_start // chunk_size + 1}"):
+                            for i, convo in enumerate(history_chunk):
+                                # Log each conversation entry to check its type
+                                st.write(f"Type of conversation entry at index {i}: {type(convo)}")
 
-                            # Avoid duplicate answers for the same query
-                            if query != last_query:
-                                with st.expander(f"History {i + 1} - {timestamp}"):
+                                if isinstance(convo, dict):  # If the entry is a dictionary
+                                    query = convo.get('query', 'No query available')
+                                    answer = convo.get('answer', 'No answer available')
+                                    timestamp = convo.get('timestamp', 'No timestamp available')
+
+                                    # Handle timestamp conversion if numeric
+                                    if isinstance(timestamp, (int, float)):
+                                        timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+                                    # Display the conversation entries
                                     st.write(f"**Query:** {query}")
                                     st.write(f"**Answer:** {answer}")
+                                    st.write(f"**Timestamp:** {timestamp}")
                                     st.markdown("---")
 
-                            # Update the last query to avoid displaying the same query multiple times
-                            last_query = query
-                        elif isinstance(convo, str):  # If the entry is a string
-                            st.warning(f"Conversation entry at index {i} is a string. Displaying as plain text.")
-                            with st.expander(f"History {i + 1} (String entry)"):
-                                st.write(convo)
-                            st.markdown("---")
-                        else:
-                            st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary or string.")
+                                elif isinstance(convo, str):  # If the entry is a string
+                                    st.warning(f"Conversation entry at index {i} is a string. Displaying as plain text.")
+                                    st.write(convo)
+                                    st.markdown("---")
+                                else:
+                                    st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary or string.")
                 else:
                     st.write("No conversation history available.")
             except ValueError as parse_error:
