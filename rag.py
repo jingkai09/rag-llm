@@ -112,14 +112,13 @@ if show_history:
                 # Parse the JSON response
                 history = history_response.json().get("conversation_history", [])
                 
-                # Proceed only if history is not empty
                 if history:
                     st.subheader("Conversation History:")
                     for i, convo in enumerate(history):
-                        # Log each conversation item to check its type
+                        # Log each conversation entry to check its type
                         st.write(f"Type of conversation entry at index {i}: {type(convo)}")
 
-                        if isinstance(convo, dict):  # Ensure convo is a dictionary
+                        if isinstance(convo, dict):  # If the entry is a dictionary
                             query = convo.get('query', 'No query available')
                             answer = convo.get('answer', 'No answer available')
                             timestamp = convo.get('timestamp', 'No timestamp available')
@@ -132,8 +131,13 @@ if show_history:
                                 st.write(f"**Query:** {query}")
                                 st.write(f"**Answer:** {answer}")
                                 st.markdown("---")
+                        elif isinstance(convo, str):  # If the entry is a string
+                            st.warning(f"Conversation entry at index {i} is a string. Displaying as plain text.")
+                            with st.expander(f"History {i + 1} (String entry)"):
+                                st.write(convo)
+                            st.markdown("---")
                         else:
-                            st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary.")
+                            st.warning(f"Invalid conversation entry at index {i + 1}: Not a valid dictionary or string.")
                 else:
                     st.write("No conversation history available.")
             except ValueError as parse_error:
@@ -142,3 +146,4 @@ if show_history:
             st.warning(f"Failed to fetch conversation history. Status code: {history_response.status_code}")
     except requests.exceptions.RequestException as request_error:
         st.error(f"Error fetching conversation history: {request_error}")
+
