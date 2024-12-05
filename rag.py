@@ -106,15 +106,20 @@ if show_history:
 
         if history_response.status_code == 200:
             try:
+                # Log the raw response to inspect its structure
+                st.write("Raw response from /conversation-history:", history_response.json())
+
                 # Parse the JSON response
                 history = history_response.json().get("conversation_history", [])
                 
+                # Proceed only if history is not empty
                 if history:
                     st.subheader("Conversation History:")
-                    # Iterate through history items safely
                     for i, convo in enumerate(history):
-                        # Ensure each entry is a dictionary
-                        if isinstance(convo, dict):  
+                        # Log each conversation item to check its type
+                        st.write(f"Type of conversation entry at index {i}: {type(convo)}")
+
+                        if isinstance(convo, dict):  # Ensure convo is a dictionary
                             query = convo.get('query', 'No query available')
                             answer = convo.get('answer', 'No answer available')
                             timestamp = convo.get('timestamp', 'No timestamp available')
@@ -123,7 +128,6 @@ if show_history:
                             if isinstance(timestamp, (int, float)):
                                 timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
-                            # Display conversation history with proper labels
                             with st.expander(f"History {i + 1} - {timestamp}"):
                                 st.write(f"**Query:** {query}")
                                 st.write(f"**Answer:** {answer}")
