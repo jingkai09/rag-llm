@@ -54,7 +54,7 @@ if st.sidebar.button("Update Parameters"):
         st.sidebar.error(f"Error communicating with the server: {e}")
 
 # Main content: Ask a Question
-st.title("RAG")
+st.title("RAG with LLM")
 
 user_query = st.text_input("Enter your query:")
 
@@ -95,7 +95,7 @@ if st.button("Submit Query"):
                 st.error(f"Error processing the query: {e}")
 
 # Sidebar: Option to display conversation history
-st.sidebar.subheader("Conversation History (Optional)")
+st.sidebar.subheader("Conversation History")
 show_history = st.sidebar.checkbox("Show Conversation History")
 
 # Display conversation history in a dropdown (select box) if selected
