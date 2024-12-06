@@ -61,7 +61,7 @@ if st.sidebar.button("Update Parameters"):
                 if e.response and e.response.status_code == 502:
                     # Retry on 502 error
                     st.sidebar.warning(f"Received 502 error. Retrying... ({attempt + 1}/{retry_attempts})")
-                    time.sleep(3)  # Wait before retrying
+                    time.sleep(1)  # Wait before retrying (shortened sleep)
                 else:
                     # Handle other types of request errors (e.g., connection issues)
                     st.sidebar.error(f"Error communicating with the server: {e}")
@@ -117,7 +117,7 @@ if st.button("Submit Query"):
                         if e.response and e.response.status_code == 502:
                             # Retry on 502 error
                             st.warning(f"Received 502 error. Retrying... ({attempt + 1}/{retry_attempts})")
-                            time.sleep(3)  # Wait before retrying
+                            time.sleep(1)  # Wait before retrying (shortened sleep)
                         else:
                             # Handle other types of request errors (e.g., connection issues)
                             st.error(f"Error processing the query: {e}")
