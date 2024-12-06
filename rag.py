@@ -12,7 +12,7 @@ rerank_method = "similarity"  # Default rerank method (can be changed)
 keywords = ""  # Default empty keywords
 
 # Fetch public URL from environment variable
-public_url = "https://giant-rockets-lay.loca.lt"
+public_url = "https://salty-steaks-wink.loca.lt"
 
 # Sidebar for Parameters
 st.sidebar.title("RAG System Configuration")
