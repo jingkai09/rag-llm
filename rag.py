@@ -2,7 +2,6 @@ import os
 import streamlit as st
 import requests
 from datetime import datetime
-import time
 
 # Initial parameters
 temperature = 0.50
@@ -38,35 +37,19 @@ if st.sidebar.button("Update Parameters"):
     if not keywords:
         keywords = ""  # Ensure keywords are never None
     try:
-        # Retry logic for POST request
-        retry_attempts = 5  # Number of retry attempts
-        for attempt in range(retry_attempts):
-            try:
-                response = requests.post(f"{public_url}/set-parameters", json={
-                    "temperature": temperature,
-                    "k": k,
-                    "chunk_overlap": overlapping,
-                    "rerank_method": rerank_method,
-                    "keywords": keywords
-                })
-                response.raise_for_status()  # Will raise an error for bad responses (status codes 4xx or 5xx)
+        response = requests.post(f"{public_url}/set-parameters", json={
+            "temperature": temperature,
+            "k": k,
+            "chunk_overlap": overlapping,
+            "rerank_method": rerank_method,
+            "keywords": keywords
+        })
+        response.raise_for_status()  # Will raise an error for bad responses (status codes 4xx or 5xx)
 
-                if response.status_code == 200:
-                    st.sidebar.success("Parameters updated successfully.")
-                    break  # Exit loop if request is successful
-                else:
-                    st.sidebar.error(f"Failed to update parameters. Status code: {response.status_code} - {response.text}")
-                    break  # Exit loop if an error other than 502 occurs
-            except requests.exceptions.RequestException as e:
-                if e.response and e.response.status_code == 502:
-                    # Retry on 502 error
-                    st.sidebar.warning(f"Received 502 error. Retrying... ({attempt + 1}/{retry_attempts})")
-                    time.sleep(1)  # Wait before retrying (shortened sleep)
-                else:
-                    # Handle other types of request errors (e.g., connection issues)
-                    st.sidebar.error(f"Error communicating with the server: {e}")
-                    break  # Exit loop for other errors
-
+        if response.status_code == 200:
+            st.sidebar.success("Parameters updated successfully.")
+        else:
+            st.sidebar.error(f"Failed to update parameters. Status code: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         st.sidebar.error(f"Error communicating with the server: {e}")
 
@@ -80,48 +63,34 @@ if st.button("Submit Query"):
     if user_query:
         with st.spinner('Processing your query...'):
             try:
-                # Retry logic for POST request
-                retry_attempts = 5  # Number of retry attempts
-                for attempt in range(retry_attempts):
+                # Pass the query and keywords to the server
+                response = requests.post(f"{public_url}/query", params={"query": user_query, "keywords": keywords})
+                response.raise_for_status()
+
+                st.subheader("Response from server:")
+                if response.status_code == 200 and response.content:
                     try:
-                        # Pass the query and keywords to the server
-                        response = requests.post(f"{public_url}/query", params={"query": user_query, "keywords": keywords})
-                        response.raise_for_status()
+                        result = response.json()
 
-                        st.subheader("Response from server:")
-                        if response.status_code == 200 and response.content:
-                            try:
-                                result = response.json()
-
-                                # Display the query answer
-                                if 'answer' in result:
-                                    st.write(f"**Answer to your query:** {result['answer']}")
-                                else:
-                                    st.error("No valid answer received.")
-
-                                # Display chunks used for answering in an organized way
-                                if 'chunks' in result:
-                                    st.write(f"**Chunks Used:**")
-                                    for i, chunk in enumerate(result["chunks"]):
-                                        with st.expander(f"Chunk {i + 1}"):
-                                            st.markdown(f"**Source**: {chunk['source']}")
-                                            st.markdown(f"**Score**: {chunk['score']}")
-                                            st.write(f"**Content**: {chunk['content'][:500]}...")  # Truncate content to 500 chars for brevity
-                                            st.markdown("---")
-                            except ValueError:
-                                st.error("Error parsing response.")
+                        # Display the query answer
+                        if 'answer' in result:
+                            st.write(f"**Answer to your query:** {result['answer']}")
                         else:
-                            st.warning("Received an empty response or error from the server.")
-                        break  # Exit loop if request is successful
-                    except requests.exceptions.RequestException as e:
-                        if e.response and e.response.status_code == 502:
-                            # Retry on 502 error
-                            st.warning(f"Received 502 error. Retrying... ({attempt + 1}/{retry_attempts})")
-                            time.sleep(1)  # Wait before retrying (shortened sleep)
-                        else:
-                            # Handle other types of request errors (e.g., connection issues)
-                            st.error(f"Error processing the query: {e}")
-                            break  # Exit loop for other errors
+                            st.error("No valid answer received.")
+
+                        # Display chunks used for answering in an organized way
+                        if 'chunks' in result:
+                            st.write(f"**Chunks Used:**")
+                            for i, chunk in enumerate(result["chunks"]):
+                                with st.expander(f"Chunk {i + 1}"):
+                                    st.markdown(f"**Source**: {chunk['source']}")
+                                    st.markdown(f"**Score**: {chunk['score']}")
+                                    st.write(f"**Content**: {chunk['content'][:500]}...")  # Truncate content to 500 chars for brevity
+                                    st.markdown("---")
+                    except ValueError:
+                        st.error("Error parsing response.")
+                else:
+                    st.warning("Received an empty response or error from the server.")
             except requests.exceptions.RequestException as e:
                 st.error(f"Error processing the query: {e}")
 
