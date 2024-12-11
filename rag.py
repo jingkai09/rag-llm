@@ -6,7 +6,7 @@ import time
 from requests.exceptions import RequestException
 
 # Maximum number of retry attempts
-MAX_RETRIES = 3
+MAX_RETRIES = 5
 RETRY_DELAY = 2  # seconds
 
 def make_request_with_retry(method, url, **kwargs):
