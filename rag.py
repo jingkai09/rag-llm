@@ -16,7 +16,7 @@ def make_request_with_retry(method, url, **kwargs):
             response = method(url, **kwargs)
             if response.status_code != 502:  # If not a 502 error, return response
                 return response
-            
+
             # If we got a 502, wait and retry
             if attempt < MAX_RETRIES - 1:  # Don't show message on last attempt
                 with st.spinner(f'Server returned 502 error. Retrying in {RETRY_DELAY} seconds... (Attempt {attempt + 1}/{MAX_RETRIES})'):
@@ -27,7 +27,7 @@ def make_request_with_retry(method, url, **kwargs):
                     time.sleep(RETRY_DELAY)
             else:
                 raise e
-    
+
     # If we've exhausted all retries, return the last response
     return response
 
@@ -93,7 +93,7 @@ else:
                     "keywords": keywords
                 }
             )
-            
+
             if response.status_code == 200:
                 st.sidebar.success("Parameters updated successfully.")
             else:
@@ -159,13 +159,13 @@ else:
             if history_response.status_code == 200:
                 try:
                     history = history_response.json().get("conversation_history", [])
-                    
+
                     if history:
                         st.subheader("Latest Conversation History:")
-                        
+
                         # Get the last 10 conversations (or all if less than 10)
                         latest_history = history[-10:]
-                        
+
                         # Display conversations in reverse chronological order (newest first)
                         for history_idx, convo in enumerate(reversed(latest_history), 1):
                             with st.expander(f"History #{history_idx}: {convo.get('query', 'No query available')[:50]}...", expanded=False):
