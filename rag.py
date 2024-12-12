@@ -1,4 +1,3 @@
-# client.py
 import os
 import streamlit as st
 import requests
@@ -17,7 +16,7 @@ def make_request_with_retry(method, url, **kwargs):
             response = method(url, **kwargs)
             if response.status_code != 502:  # If not a 502 error, return response
                 return response
-            
+
             if attempt < MAX_RETRIES - 1:
                 with st.spinner(f'Server returned 502 error. Retrying in {RETRY_DELAY} seconds... (Attempt {attempt + 1}/{MAX_RETRIES})'):
                     time.sleep(RETRY_DELAY)
@@ -58,7 +57,7 @@ if not st.session_state.public_url:
 else:
     # RAG System Configuration
     st.sidebar.title("RAG System Configuration")
-    
+
     # Parameters
     temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.5)
     k = st.sidebar.slider("Top k Results", 1, 20, 10)
@@ -76,7 +75,7 @@ else:
                     "chunk_overlap": chunk_overlap
                 }
             )
-            
+
             if response.status_code == 200:
                 st.sidebar.success("Parameters updated successfully!")
             else:
@@ -103,11 +102,11 @@ else:
 
                     if response.status_code == 200:
                         result = response.json()
-                        
+
                         # Display answer
                         st.markdown("### Answer")
                         st.write(result['answer'])
-                        
+
                         # Display keywords
                         if 'keywords' in result and result['keywords']:
                             st.markdown("### Keywords")
@@ -116,18 +115,18 @@ else:
                                 keyword_html += f"<span style='background-color: #f0f2f6; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
                             keyword_html += "</div>"
                             st.markdown(keyword_html, unsafe_allow_html=True)
-                        
+
                         # Display chunks
                         if 'chunks' in result and result['chunks']:
                             st.markdown("### Retrieved Chunks")
                             for i, chunk in enumerate(result['chunks'], 1):
-                                with st.expander(f"Chunk {i} (ID: {chunk.get('id', 'N/A')} | Score: {chunk['score']:.4f})", expanded=False):
+                                with st.expander(f"Chunk {i} (ID: {chunk.get('id', 'N/A')})", expanded=False):
                                     # Display chunk ID if available
                                     if 'id' in chunk:
                                         st.markdown(f"**Chunk ID**: {chunk['id']}")
-                                    
+
                                     st.markdown(f"**Source**: {chunk['source']}")
-                                    
+
                                     # Highlight keywords in content
                                     content = chunk['content']
                                     if 'keywords' in result:
@@ -150,7 +149,7 @@ else:
                 requests.get,
                 f"{st.session_state.public_url}/conversation-history"
             )
-            
+
             if history_response.status_code == 200:
                 history = history_response.json().get("conversation_history", [])
                 if history:
