@@ -1,3 +1,4 @@
+# client.py
 import os
 import streamlit as st
 import requests
@@ -5,7 +6,7 @@ from datetime import datetime
 import time
 from requests.exceptions import RequestException
 
-# Maximum number of retry attempts
+# Configuration
 MAX_RETRIES = 5
 RETRY_DELAY = 2  # seconds
 
@@ -17,8 +18,7 @@ def make_request_with_retry(method, url, **kwargs):
             if response.status_code != 502:  # If not a 502 error, return response
                 return response
             
-            # If we got a 502, wait and retry
-            if attempt < MAX_RETRIES - 1:  # Don't show message on last attempt
+            if attempt < MAX_RETRIES - 1:
                 with st.spinner(f'Server returned 502 error. Retrying in {RETRY_DELAY} seconds... (Attempt {attempt + 1}/{MAX_RETRIES})'):
                     time.sleep(RETRY_DELAY)
         except RequestException as e:
@@ -27,60 +27,45 @@ def make_request_with_retry(method, url, **kwargs):
                     time.sleep(RETRY_DELAY)
             else:
                 raise e
-    
-    # If we've exhausted all retries, return the last response
     return response
 
-# Initialize session state for URL if not exists
+# Page configuration
+st.set_page_config(
+    page_title="RAG System",
+    page_icon="🤖",
+    layout="wide"
+)
+
+# Initialize session state
 if 'public_url' not in st.session_state:
     st.session_state.public_url = ""
 
-# Initial parameters
-temperature = 0.50
-k = 10
-overlapping = 50
-rerank_method = "similarity"
-keywords = ""
-
-# URL Input at the top of the sidebar
+# Sidebar configuration
 st.sidebar.title("Server Configuration")
 input_url = st.sidebar.text_input(
-    "Enter your localtunnel URL:",
+    "Enter your server URL:",
     value=st.session_state.public_url,
-    help="Example: https://your-tunnel.loca.lt"
+    help="Example: http://localhost:8000 or https://your-tunnel.loca.lt"
 )
 
 # Update session state if URL changes
 if input_url != st.session_state.public_url:
     st.session_state.public_url = input_url
 
-# Only show the rest of the interface if URL is provided
+# Main interface
 if not st.session_state.public_url:
-    st.warning("Please enter your localtunnel URL in the sidebar to begin.")
+    st.warning("Please enter your server URL in the sidebar to begin.")
 else:
-    # Sidebar for Parameters
+    # RAG System Configuration
     st.sidebar.title("RAG System Configuration")
-    st.sidebar.write("Select the reranking method:")
-
-    rerank_method = st.sidebar.selectbox(
-        "Rerank Method",
-        ["similarity", "importance"],
-        index=0
-    )
-
-    # Configure the RAG pipeline parameters in the sidebar
-    st.sidebar.subheader("Configure the RAG pipeline parameters:")
+    
+    # Parameters
     temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.5)
-    k = st.sidebar.slider("Top k", 1, 20, 10)
-    overlapping = st.sidebar.slider("Chunk Overlap", 0, 100, 50)
+    k = st.sidebar.slider("Top k Results", 1, 20, 10)
+    chunk_overlap = st.sidebar.slider("Chunk Overlap", 0, 100, 50)
 
-    # Keywords input (comma-separated) in the sidebar
-    keywords = st.sidebar.text_input("Enter Keywords (Optional)", "")
-
-    # Set parameters on the server
+    # Update parameters button
     if st.sidebar.button("Update Parameters"):
-        if not keywords:
-            keywords = ""
         try:
             response = make_request_with_retry(
                 requests.post,
@@ -88,107 +73,90 @@ else:
                 json={
                     "temperature": temperature,
                     "k": k,
-                    "chunk_overlap": overlapping,
-                    "rerank_method": rerank_method,
-                    "keywords": keywords
+                    "chunk_overlap": chunk_overlap
                 }
             )
             
             if response.status_code == 200:
-                st.sidebar.success("Parameters updated successfully.")
+                st.sidebar.success("Parameters updated successfully!")
             else:
-                st.sidebar.error(f"Failed to update parameters. Status code: {response.status_code} - {response.text}")
-        except RequestException as e:
-            st.sidebar.error(f"Error communicating with the server: {e}")
+                st.sidebar.error(f"Failed to update parameters: {response.text}")
+        except Exception as e:
+            st.sidebar.error(f"Error: {str(e)}")
 
-    # Main content: Ask a Question
+    # Main content
     st.title("RAG with LLM")
+    st.markdown("---")
 
-    user_query = st.text_input("Enter your query:")
+    # Query interface
+    user_query = st.text_input("Enter your question:", key="query_input")
 
-    # Button to submit query
-    if st.button("Submit Query"):
+    if st.button("Submit Query", key="submit_button"):
         if user_query:
             with st.spinner('Processing your query...'):
                 try:
                     response = make_request_with_retry(
                         requests.post,
                         f"{st.session_state.public_url}/query",
-                        params={"query": user_query, "keywords": keywords}
+                        params={"query": user_query}
                     )
 
-                    st.subheader("Response from server:")
-                    if response.status_code == 200 and response.content:
-                        try:
-                            result = response.json()
-
-                            if 'answer' in result:
-                                st.write(f"**Answer to your query:** {result['answer']}")
-
-                            if 'extracted_keywords' in result:
-                                st.write("**Extracted Keywords:**")
-                                st.write(", ".join(result['extracted_keywords']))
-
-                            if 'chunks' in result:
-                                st.write(f"**Retrieved Chunks:**")
-                                for rank, chunk in enumerate(result["chunks"], 1):
-                                    chunk_id = chunk.get('id', chunk.get('chunk_id', 'Unknown'))  # Try both 'id' and 'chunk_id'
-                                    with st.expander(f"Rank #{rank} (Chunk ID: {chunk_id})", expanded=False):
-                                        st.markdown(f"**Source**: {chunk['source']}")
-                                        st.markdown(f"**Score**: {chunk['score']}")
-                                        st.markdown(f"**Chunk ID**: {chunk_id}")
-                                        st.write(f"**Content**: {chunk['content'][:500]}...")
-                                        st.markdown("---")
-                        except ValueError:
-                            st.error("Error parsing response.")
+                    if response.status_code == 200:
+                        result = response.json()
+                        
+                        # Display answer
+                        st.markdown("### Answer")
+                        st.write(result['answer'])
+                        
+                        # Display keywords
+                        if 'keywords' in result and result['keywords']:
+                            st.markdown("### Keywords")
+                            keyword_html = "<div style='display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;'>"
+                            for keyword in result['keywords']:
+                                keyword_html += f"<span style='background-color: #f0f2f6; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
+                            keyword_html += "</div>"
+                            st.markdown(keyword_html, unsafe_allow_html=True)
+                        
+                        # Display chunks
+                        if 'chunks' in result and result['chunks']:
+                            st.markdown("### Retrieved Chunks")
+                            for i, chunk in enumerate(result['chunks'], 1):
+                                with st.expander(f"Chunk {i} (Score: {chunk['score']:.4f})", expanded=False):
+                                    st.markdown(f"**Source**: {chunk['source']}")
+                                    
+                                    # Highlight keywords in content
+                                    content = chunk['content']
+                                    if 'keywords' in result:
+                                        for keyword in result['keywords']:
+                                            content = content.replace(
+                                                keyword,
+                                                f"<mark>{keyword}</mark>"
+                                            )
+                                    st.markdown(f"**Content**: {content}", unsafe_allow_html=True)
                     else:
-                        st.warning("Received an empty response or error from the server.")
-                except RequestException as e:
-                    st.error(f"Error processing the query: {e}")
+                        st.error(f"Error: {response.text}")
+                except Exception as e:
+                    st.error(f"Error processing query: {str(e)}")
 
-    # Sidebar: Option to display conversation history
-    st.sidebar.subheader("Conversation History")
-    show_history = st.sidebar.checkbox("Show Conversation History")
-
-    # Display conversation history
-    if show_history:
+    # Conversation History
+    st.sidebar.markdown("---")
+    if st.sidebar.checkbox("Show Conversation History"):
         try:
             history_response = make_request_with_retry(
                 requests.get,
                 f"{st.session_state.public_url}/conversation-history"
             )
-
+            
             if history_response.status_code == 200:
-                try:
-                    history = history_response.json().get("conversation_history", [])
-                    
-                    if history:
-                        st.subheader("Latest Conversation History:")
-                        
-                        # Get the last 10 conversations (or all if less than 10)
-                        latest_history = history[-10:]
-                        
-                        # Display conversations in reverse chronological order (newest first)
-                        for history_idx, convo in enumerate(reversed(latest_history), 1):
-                            with st.expander(f"History #{history_idx}: {convo.get('query', 'No query available')[:50]}...", expanded=False):
-                                if isinstance(convo, dict):
-                                    query = convo.get('query', 'No query available')
-                                    answer = convo.get('answer', 'No answer available')
-                                    timestamp = convo.get('timestamp', 'No timestamp available')
-
-                                    if isinstance(timestamp, (int, float)):
-                                        timestamp = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-
-                                    st.write(f"**Full Query:** {query}")
-                                    st.write(f"**Answer:** {answer}")
-                                    st.write(f"**Timestamp:** {timestamp}")
-                                else:
-                                    st.warning("Invalid conversation entry: Not a valid dictionary")
-                    else:
-                        st.write("No conversation history available.")
-                except ValueError as parse_error:
-                    st.error(f"Error parsing the conversation history response: {parse_error}")
-            else:
-                st.warning(f"Failed to fetch conversation history. Status code: {history_response.status_code}")
-        except RequestException as request_error:
-            st.error(f"Error fetching conversation history: {request_error}")
+                history = history_response.json().get("conversation_history", [])
+                if history:
+                    st.markdown("### Conversation History")
+                    for i, conv in enumerate(reversed(history), 1):
+                        with st.expander(f"Q{i}: {conv['query'][:50]}...", expanded=False):
+                            st.markdown(f"**Question**: {conv['query']}")
+                            st.markdown(f"**Answer**: {conv['answer']}")
+                            st.markdown(f"**Time**: {conv['timestamp']}")
+                else:
+                    st.info("No conversation history available.")
+        except Exception as e:
+            st.error(f"Error fetching conversation history: {str(e)}")
