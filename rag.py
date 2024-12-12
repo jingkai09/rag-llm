@@ -121,7 +121,11 @@ else:
                         if 'chunks' in result and result['chunks']:
                             st.markdown("### Retrieved Chunks")
                             for i, chunk in enumerate(result['chunks'], 1):
-                                with st.expander(f"Chunk {i} (Score: {chunk['score']:.4f})", expanded=False):
+                                with st.expander(f"Chunk {i} (ID: {chunk.get('id', 'N/A')} | Score: {chunk['score']:.4f})", expanded=False):
+                                    # Display chunk ID if available
+                                    if 'id' in chunk:
+                                        st.markdown(f"**Chunk ID**: {chunk['id']}")
+                                    
                                     st.markdown(f"**Source**: {chunk['source']}")
                                     
                                     # Highlight keywords in content
