@@ -64,7 +64,7 @@ else:
 
     rerank_method = st.sidebar.selectbox(
         "Rerank Method",
-        ["similarity", "importance"],
+        ["keywords", "semantic"],
         index=0
     )
 
