@@ -130,12 +130,15 @@ else:
                             if 'chunks' in result:
                                 st.write(f"**Retrieved Chunks:**")
                                 for rank, chunk in enumerate(result["chunks"], 1):
-                                    chunk_id = chunk.get('id', chunk.get('chunk_id', 'Unknown'))  # Try both 'id' and 'chunk_id'
-                                    with st.expander(f"Rank #{rank} (Chunk ID: {chunk_id})", expanded=False):
+                                    # Updated to handle the new chunk_index field
+                                    chunk_index = chunk.get('chunk_index', 'Unknown')
+                                    with st.expander(f"Rank #{rank} (Chunk Index: {chunk_index})", expanded=False):
                                         st.markdown(f"**Source**: {chunk['source']}")
                                         st.markdown(f"**Score**: {chunk['score']}")
-                                        st.markdown(f"**Chunk ID**: {chunk_id}")
-                                        st.write(f"**Content**: {chunk['content'][:500]}...")
+                                        st.markdown(f"**Chunk Index**: {chunk_index}")
+                                        st.markdown(f"**Reference**: {chunk.get('reference', 'N/A')}")
+                                        st.write("**Content**:")
+                                        st.text_area("", chunk['content'], height=150, disabled=True)
                                         st.markdown("---")
                         except ValueError:
                             st.error("Error parsing response.")
