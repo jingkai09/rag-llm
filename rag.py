@@ -112,7 +112,7 @@ else:
                             st.markdown("### Keywords")
                             keyword_html = "<div style='display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;'>"
                             for keyword in result['keywords']:
-                                keyword_html += f"<span style='background-color: #FF7F50; color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
+                                keyword_html += f"<span style='background-color: #4A5568; color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
                             keyword_html += "</div>"
                             st.markdown(keyword_html, unsafe_allow_html=True)
 
@@ -133,7 +133,7 @@ else:
                                         for keyword in result['keywords']:
                                             content = content.replace(
                                                 keyword,
-                                                f"<span style='background-color: #FFD700; padding: 2px 4px; border-radius: 3px;'>{keyword}</span>"
+                                                f"<span style='background-color: #4299E1; color: white; padding: 2px 4px; border-radius: 3px;'>{keyword}</span>"
                                             )
                                     st.markdown(f"**Content**: {content}", unsafe_allow_html=True)
                     else:
