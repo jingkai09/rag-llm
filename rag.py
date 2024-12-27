@@ -107,12 +107,12 @@ else:
                         st.markdown("### Answer")
                         st.write(result['answer'])
 
-                        # Display keywords
+                        # Display keywords with updated color
                         if 'keywords' in result and result['keywords']:
                             st.markdown("### Keywords")
                             keyword_html = "<div style='display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;'>"
                             for keyword in result['keywords']:
-                                keyword_html += f"<span style='background-color: #f0f2f6; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
+                                keyword_html += f"<span style='background-color: #FF7F50; color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
                             keyword_html += "</div>"
                             st.markdown(keyword_html, unsafe_allow_html=True)
 
@@ -127,13 +127,13 @@ else:
 
                                     st.markdown(f"**Source**: {chunk['source']}")
 
-                                    # Highlight keywords in content
+                                    # Highlight keywords in content with updated color
                                     content = chunk['content']
                                     if 'keywords' in result:
                                         for keyword in result['keywords']:
                                             content = content.replace(
                                                 keyword,
-                                                f"<mark>{keyword}</mark>"
+                                                f"<span style='background-color: #FFD700; padding: 2px 4px; border-radius: 3px;'>{keyword}</span>"
                                             )
                                     st.markdown(f"**Content**: {content}", unsafe_allow_html=True)
                     else:
