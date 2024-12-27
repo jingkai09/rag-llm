@@ -38,6 +38,8 @@ st.set_page_config(
 # Initialize session state
 if 'public_url' not in st.session_state:
     st.session_state.public_url = ""
+if 'keywords' not in st.session_state:
+    st.session_state.keywords = []
 
 # Sidebar configuration
 st.sidebar.title("Server Configuration")
@@ -62,18 +64,52 @@ else:
     temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.5)
     k = st.sidebar.slider("Top k Results", 1, 20, 10)
     chunk_overlap = st.sidebar.slider("Chunk Overlap", 0, 100, 50)
+    
+    # Reranking Configuration
+    st.sidebar.markdown("### Reranking Configuration")
+    rerank_method = st.sidebar.radio(
+        "Reranking Method",
+        options=["semantic", "keywords"],
+        help="Choose between semantic similarity or keyword-based reranking"
+    )
+
+    # Keyword input section (shown only when keywords method is selected)
+    if rerank_method == "keywords":
+        st.sidebar.markdown("### Keyword Configuration")
+        keyword_input = st.sidebar.text_input(
+            "Enter keywords (comma-separated):",
+            help="Enter keywords to influence document ranking"
+        )
+        if keyword_input:
+            # Split and clean keywords
+            keywords = [k.strip() for k in keyword_input.split(",") if k.strip()]
+            if keywords != st.session_state.keywords:
+                st.session_state.keywords = keywords
+        
+        # Display current keywords
+        if st.session_state.keywords:
+            st.sidebar.markdown("**Current Keywords:**")
+            for keyword in st.session_state.keywords:
+                st.sidebar.markdown(f"- {keyword}")
 
     # Update parameters button
     if st.sidebar.button("Update Parameters"):
         try:
+            params = {
+                "temperature": temperature,
+                "k": k,
+                "chunk_overlap": chunk_overlap,
+                "rerank_method": rerank_method
+            }
+            
+            # Add keywords if using keyword reranking
+            if rerank_method == "keywords" and st.session_state.keywords:
+                params["keywords"] = st.session_state.keywords
+
             response = make_request_with_retry(
                 requests.post,
                 f"{st.session_state.public_url}/set-parameters",
-                json={
-                    "temperature": temperature,
-                    "k": k,
-                    "chunk_overlap": chunk_overlap
-                }
+                json=params
             )
 
             if response.status_code == 200:
@@ -107,7 +143,7 @@ else:
                         st.markdown("### Answer")
                         st.write(result['answer'])
 
-                        # Display keywords with updated color
+                        # Display keywords
                         if 'keywords' in result and result['keywords']:
                             st.markdown("### Keywords")
                             keyword_html = "<div style='display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;'>"
@@ -116,25 +152,30 @@ else:
                             keyword_html += "</div>"
                             st.markdown(keyword_html, unsafe_allow_html=True)
 
-                        # Display chunks
+                        # Display chunks with enhanced information
                         if 'chunks' in result and result['chunks']:
                             st.markdown("### Retrieved Chunks")
                             for i, chunk in enumerate(result['chunks'], 1):
-                                with st.expander(f"Chunk {i} (ID: {chunk.get('id', 'N/A')})", expanded=False):
-                                    # Display chunk ID if available
-                                    if 'id' in chunk:
-                                        st.markdown(f"**Chunk ID**: {chunk['id']}")
-
+                                # Include similarity score in expander title
+                                score_text = f" (Score: {chunk.get('similarity_score', 0):.3f})"
+                                keyword_matches = ""
+                                if rerank_method == "keywords" and "keyword_matches" in chunk:
+                                    keyword_matches = f" [Matched: {', '.join(chunk['keyword_matches'])}]"
+                                
+                                with st.expander(f"Chunk {i}{score_text}{keyword_matches}", expanded=False):
                                     st.markdown(f"**Source**: {chunk['source']}")
-
-                                    # Highlight keywords in content with updated color
+                                    
+                                    # Highlight content based on keywords
                                     content = chunk['content']
-                                    if 'keywords' in result:
-                                        for keyword in result['keywords']:
-                                            content = content.replace(
-                                                keyword,
-                                                f"<span style='background-color: #4299E1; color: white; padding: 2px 4px; border-radius: 3px;'>{keyword}</span>"
-                                            )
+                                    highlight_keywords = (st.session_state.keywords 
+                                                        if rerank_method == "keywords" 
+                                                        else result.get('keywords', []))
+                                    
+                                    for keyword in highlight_keywords:
+                                        content = content.replace(
+                                            keyword,
+                                            f"<span style='background-color: #4299E1; color: white; padding: 2px 4px; border-radius: 3px;'>{keyword}</span>"
+                                        )
                                     st.markdown(f"**Content**: {content}", unsafe_allow_html=True)
                     else:
                         st.error(f"Error: {response.text}")
