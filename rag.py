@@ -40,6 +40,8 @@ if 'public_url' not in st.session_state:
     st.session_state.public_url = ""
 if 'keywords' not in st.session_state:
     st.session_state.keywords = []
+if 'default_score' not in st.session_state:
+    st.session_state.default_score = 0.75  # Default similarity score
 
 # Sidebar configuration
 st.sidebar.title("Server Configuration")
@@ -65,6 +67,14 @@ else:
     k = st.sidebar.slider("Top k Results", 1, 20, 10)
     chunk_overlap = st.sidebar.slider("Chunk Overlap", 0, 100, 50)
     
+    # Default Score Configuration
+    st.sidebar.markdown("### Default Score Configuration")
+    st.session_state.default_score = st.sidebar.slider(
+        "Default Similarity Score",
+        0.0, 1.0, st.session_state.default_score,
+        help="Set default similarity score for chunks without scores"
+    )
+    
     # Reranking Configuration
     st.sidebar.markdown("### Reranking Configuration")
     rerank_method = st.sidebar.radio(
@@ -81,12 +91,10 @@ else:
             help="Enter keywords to influence document ranking"
         )
         if keyword_input:
-            # Split and clean keywords
             keywords = [k.strip() for k in keyword_input.split(",") if k.strip()]
             if keywords != st.session_state.keywords:
                 st.session_state.keywords = keywords
         
-        # Display current keywords
         if st.session_state.keywords:
             st.sidebar.markdown("**Current Keywords:**")
             for keyword in st.session_state.keywords:
@@ -102,7 +110,6 @@ else:
                 "rerank_method": rerank_method
             }
             
-            # Add keywords if using keyword reranking
             if rerank_method == "keywords" and st.session_state.keywords:
                 params["keywords"] = st.session_state.keywords
 
@@ -155,15 +162,18 @@ else:
                         # Display chunks with enhanced information
                         if 'chunks' in result and result['chunks']:
                             st.markdown("### Retrieved Chunks")
-                            for i, chunk in enumerate(result['chunks'], 1):
-                                # Include similarity score in expander title
-                                score_text = f" (Score: {chunk.get('similarity_score', 0):.3f})"
-                                keyword_matches = ""
-                                if rerank_method == "keywords" and "keyword_matches" in chunk:
-                                    keyword_matches = f" [Matched: {', '.join(chunk['keyword_matches'])}]"
+                            for chunk in result['chunks']:
+                                # Get chunk ID and score
+                                chunk_id = chunk.get('id', 'N/A')
+                                similarity_score = chunk.get('similarity_score', st.session_state.default_score)
                                 
-                                with st.expander(f"Chunk {i}{score_text}{keyword_matches}", expanded=False):
+                                with st.expander(f"Chunk {chunk_id}", expanded=False):
+                                    # Display score and metadata at the top of expanded content
+                                    st.markdown(f"**Similarity Score**: {similarity_score:.3f}")
                                     st.markdown(f"**Source**: {chunk['source']}")
+                                    
+                                    if rerank_method == "keywords" and "keyword_matches" in chunk:
+                                        st.markdown(f"**Matched Keywords**: {', '.join(chunk['keyword_matches'])}")
                                     
                                     # Highlight content based on keywords
                                     content = chunk['content']
