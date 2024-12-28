@@ -1,4 +1,4 @@
-# pages/3_Chat.py
+# pages/chat.py
 import streamlit as st
 import requests
 import time
@@ -9,14 +9,13 @@ MAX_RETRIES = 5
 RETRY_DELAY = 2
 
 def make_request_with_retry(method, url, **kwargs):
-    """Helper function to make requests with retry logic"""
     for attempt in range(MAX_RETRIES):
         try:
             response = method(url, **kwargs)
             if response.status_code != 502:
                 return response
             if attempt < MAX_RETRIES - 1:
-                with st.spinner(f'Server returned 502 error. Retrying in {RETRY_DELAY} seconds... (Attempt {attempt + 1}/{MAX_RETRIES})'):
+                with st.spinner(f'Retrying... (Attempt {attempt + 1}/{MAX_RETRIES})'):
                     time.sleep(RETRY_DELAY)
         except RequestException as e:
             if attempt < MAX_RETRIES - 1:
@@ -28,19 +27,18 @@ def make_request_with_retry(method, url, **kwargs):
 
 # Page configuration
 st.set_page_config(
-    page_title="RAG Chat",
+    page_title="Chat",
     page_icon="💬",
     layout="wide"
 )
 
-# Check if setup is complete
+# Check setup
 if not st.session_state.get('server_url') or not st.session_state.get('chatbot_id') or not st.session_state.get('kb_id'):
-    st.error("⚠️ Please complete the setup and knowledge base configuration first!")
-    if st.button("Go to Setup"):
-        st.switch_page("pages/1_Setup.py")
+    st.error("⚠️ Complete setup first!")
+    st.info("👈 Return to Home page")
     st.stop()
 
-st.title("💬 RAG Chat")
+st.title("Chat Interface")
 
 # Initialize chat history
 if 'chat_history' not in st.session_state:
@@ -59,19 +57,22 @@ for message in st.session_state.chat_history:
                         st.markdown(f"**Keywords**: {', '.join(doc['keywords'])}")
 
 # Chat input
-user_query = st.chat_input("Enter your question...")
+user_query = st.chat_input("Ask a question...")
 
 if user_query:
     # Display user message
     with st.chat_message("user"):
         st.write(user_query)
     
-    # Add user message to chat history
-    st.session_state.chat_history.append({"role": "user", "content": user_query})
+    # Save to history
+    st.session_state.chat_history.append({
+        "role": "user", 
+        "content": user_query
+    })
     
     # Get bot response
     with st.chat_message("assistant"):
-        with st.spinner('Thinking...'):
+        with st.spinner('Processing...'):
             try:
                 response = make_request_with_retry(
                     requests.post,
@@ -86,14 +87,14 @@ if user_query:
                     result = response.json()
                     st.write(result['answer'])
                     
-                    # Add bot response to chat history with documents
+                    # Save to history
                     st.session_state.chat_history.append({
                         "role": "assistant",
                         "content": result['answer'],
                         "documents": result.get('documents', [])
                     })
                     
-                    # Display source documents in expander
+                    # Show sources
                     if 'documents' in result and result['documents']:
                         with st.expander("View Sources"):
                             for doc in result['documents']:
@@ -104,4 +105,10 @@ if user_query:
                 else:
                     st.error(f"Error: {response.text}")
             except Exception as e:
-                st.error(
+                st.error(f"Error: {str(e)}")
+
+# Clear chat button
+if st.session_state.chat_history:
+    if st.button("Clear Chat History"):
+        st.session_state.chat_history = []
+        st.rerun()
