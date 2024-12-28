@@ -36,97 +36,115 @@ st.set_page_config(
 )
 
 # Initialize session state
-if 'public_url' not in st.session_state:
-    st.session_state.public_url = ""
-if 'keywords' not in st.session_state:
-    st.session_state.keywords = []
-if 'default_score' not in st.session_state:
-    st.session_state.default_score = 0.75  # Default similarity score
+if 'server_url' not in st.session_state:
+    st.session_state.server_url = ""
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
+if 'chatbot_id' not in st.session_state:
+    st.session_state.chatbot_id = None
 
 # Sidebar configuration
-st.sidebar.title("Server Configuration")
-input_url = st.sidebar.text_input(
-    "Enter your server URL:",
-    value=st.session_state.public_url,
-    help="Example: http://localhost:8000 or https://your-tunnel.loca.lt"
-)
-
-# Update session state if URL changes
-if input_url != st.session_state.public_url:
-    st.session_state.public_url = input_url
-
-# Main interface
-if not st.session_state.public_url:
-    st.warning("Please enter your server URL in the sidebar to begin.")
-else:
-    # RAG System Configuration
-    st.sidebar.title("RAG System Configuration")
-
-    # Parameters
-    temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.5)
-    k = st.sidebar.slider("Top k Results", 1, 20, 10)
-    chunk_overlap = st.sidebar.slider("Chunk Overlap", 0, 100, 50)
-    
-    # Default Score Configuration
-    st.sidebar.markdown("### Default Score Configuration")
-    st.session_state.default_score = st.sidebar.slider(
-        "Default Similarity Score",
-        0.0, 1.0, st.session_state.default_score,
-        help="Set default similarity score for chunks without scores"
-    )
-    
-    # Reranking Configuration
-    st.sidebar.markdown("### Reranking Configuration")
-    rerank_method = st.sidebar.radio(
-        "Reranking Method",
-        options=["semantic", "keywords"],
-        help="Choose between semantic similarity or keyword-based reranking"
+with st.sidebar:
+    st.title("Server Configuration")
+    input_url = st.text_input(
+        "Server URL:",
+        value=st.session_state.server_url,
+        help="Example: http://localhost:8000"
     )
 
-    # Keyword input section (shown only when keywords method is selected)
-    if rerank_method == "keywords":
-        st.sidebar.markdown("### Keyword Configuration")
-        keyword_input = st.sidebar.text_input(
-            "Enter keywords (comma-separated):",
-            help="Enter keywords to influence document ranking"
-        )
-        if keyword_input:
-            keywords = [k.strip() for k in keyword_input.split(",") if k.strip()]
-            if keywords != st.session_state.keywords:
-                st.session_state.keywords = keywords
+    # Update session state if URL changes
+    if input_url != st.session_state.server_url:
+        st.session_state.server_url = input_url
+
+    # User Management
+    if st.session_state.server_url:
+        st.title("User Management")
         
-        if st.session_state.keywords:
-            st.sidebar.markdown("**Current Keywords:**")
-            for keyword in st.session_state.keywords:
-                st.sidebar.markdown(f"- {keyword}")
+        # Create new user
+        with st.expander("Create New User"):
+            new_user_name = st.text_input("Enter username")
+            if st.button("Create User"):
+                try:
+                    response = make_request_with_retry(
+                        requests.post,
+                        f"{st.session_state.server_url}/users",
+                        data={"name": new_user_name}
+                    )
+                    if response.status_code == 200:
+                        st.success(f"User created successfully! User ID: {response.json()['id']}")
+                        st.session_state.user_id = response.json()['id']
+                    else:
+                        st.error(f"Failed to create user: {response.text}")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
 
-    # Update parameters button
-    if st.sidebar.button("Update Parameters"):
-        try:
-            params = {
-                "temperature": temperature,
-                "k": k,
-                "chunk_overlap": chunk_overlap,
-                "rerank_method": rerank_method
-            }
+        # Select existing user
+        st.session_state.user_id = st.text_input("Enter User ID", value=st.session_state.user_id or "")
+
+        # Chatbot Management
+        if st.session_state.user_id:
+            st.title("Chatbot Management")
             
-            if rerank_method == "keywords" and st.session_state.keywords:
-                params["keywords"] = st.session_state.keywords
+            # Create new chatbot
+            with st.expander("Create New Chatbot"):
+                new_bot_name = st.text_input("Chatbot Name")
+                new_bot_desc = st.text_area("Description")
+                if st.button("Create Chatbot"):
+                    try:
+                        response = make_request_with_retry(
+                            requests.post,
+                            f"{st.session_state.server_url}/chatbots",
+                            data={
+                                "user_id": st.session_state.user_id,
+                                "name": new_bot_name,
+                                "description": new_bot_desc
+                            }
+                        )
+                        if response.status_code == 200:
+                            st.success(f"Chatbot created successfully! ID: {response.json()['id']}")
+                            st.session_state.chatbot_id = response.json()['id']
+                        else:
+                            st.error(f"Failed to create chatbot: {response.text}")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
 
-            response = make_request_with_retry(
-                requests.post,
-                f"{st.session_state.public_url}/set-parameters",
-                json=params
-            )
+            # Select existing chatbot
+            st.session_state.chatbot_id = st.text_input("Enter Chatbot ID", value=st.session_state.chatbot_id or "")
 
-            if response.status_code == 200:
-                st.sidebar.success("Parameters updated successfully!")
-            else:
-                st.sidebar.error(f"Failed to update parameters: {response.text}")
-        except Exception as e:
-            st.sidebar.error(f"Error: {str(e)}")
+        # Chatbot Configuration
+        if st.session_state.chatbot_id:
+            st.title("Chatbot Configuration")
+            
+            temperature = st.slider("Temperature", 0.0, 1.0, 0.5)
+            max_tokens = st.slider("Max Tokens", 100, 4000, 2000)
+            k = st.slider("Top k Results", 1, 20, 10)
+            
+            if st.button("Update Configuration"):
+                try:
+                    response = make_request_with_retry(
+                        requests.post,
+                        f"{st.session_state.server_url}/chatbots/{st.session_state.chatbot_id}/configure",
+                        data={
+                            "temperature": temperature,
+                            "max_tokens": max_tokens,
+                            "k": k
+                        }
+                    )
+                    if response.status_code == 200:
+                        st.success("Configuration updated successfully!")
+                    else:
+                        st.error(f"Failed to update configuration: {response.text}")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
 
-    # Main content
+# Main content
+if not st.session_state.server_url:
+    st.warning("Please enter your server URL in the sidebar to begin.")
+elif not st.session_state.user_id:
+    st.warning("Please create or select a user to continue.")
+elif not st.session_state.chatbot_id:
+    st.warning("Please create or select a chatbot to continue.")
+else:
     st.title("RAG with LLM")
     st.markdown("---")
 
@@ -139,8 +157,11 @@ else:
                 try:
                     response = make_request_with_retry(
                         requests.post,
-                        f"{st.session_state.public_url}/query",
-                        params={"query": user_query}
+                        f"{st.session_state.server_url}/query",
+                        data={
+                            "query": user_query,
+                            "chatbot_id": st.session_state.chatbot_id,
+                        }
                     )
 
                     if response.status_code == 200:
@@ -150,67 +171,45 @@ else:
                         st.markdown("### Answer")
                         st.write(result['answer'])
 
-                        # Display keywords
-                        if 'keywords' in result and result['keywords']:
-                            st.markdown("### Keywords")
-                            keyword_html = "<div style='display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;'>"
-                            for keyword in result['keywords']:
-                                keyword_html += f"<span style='background-color: #4A5568; color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
-                            keyword_html += "</div>"
-                            st.markdown(keyword_html, unsafe_allow_html=True)
+                        # Display document details
+                        if 'documents' in result and result['documents']:
+                            st.markdown("### Retrieved Documents")
+                            for doc in result['documents']:
+                                with st.expander(f"Document: {doc['name']}", expanded=False):
+                                    st.markdown(f"**Preview**: {doc['preview']}")
+                                    if 'keywords' in doc and doc['keywords']:
+                                        st.markdown(f"**Keywords**: {', '.join(doc['keywords'])}")
 
-                        # Display chunks with enhanced information
-                        if 'chunks' in result and result['chunks']:
-                            st.markdown("### Retrieved Chunks")
-                            for chunk in result['chunks']:
-                                # Get chunk ID and score
-                                chunk_id = chunk.get('id', 'N/A')
-                                similarity_score = chunk.get('similarity_score', st.session_state.default_score)
-                                
-                                with st.expander(f"Chunk {chunk_id}", expanded=False):
-                                    # Display score and metadata at the top of expanded content
-                                    st.markdown(f"**Similarity Score**: {similarity_score:.3f}")
-                                    st.markdown(f"**Source**: {chunk['source']}")
-                                    
-                                    if rerank_method == "keywords" and "keyword_matches" in chunk:
-                                        st.markdown(f"**Matched Keywords**: {', '.join(chunk['keyword_matches'])}")
-                                    
-                                    # Highlight content based on keywords
-                                    content = chunk['content']
-                                    highlight_keywords = (st.session_state.keywords 
-                                                        if rerank_method == "keywords" 
-                                                        else result.get('keywords', []))
-                                    
-                                    for keyword in highlight_keywords:
-                                        content = content.replace(
-                                            keyword,
-                                            f"<span style='background-color: #4299E1; color: white; padding: 2px 4px; border-radius: 3px;'>{keyword}</span>"
-                                        )
-                                    st.markdown(f"**Content**: {content}", unsafe_allow_html=True)
+                        # Display metadata
+                        if 'metadata' in result:
+                            st.markdown("### Query Metadata")
+                            st.json(result['metadata'])
                     else:
                         st.error(f"Error: {response.text}")
                 except Exception as e:
                     st.error(f"Error processing query: {str(e)}")
 
-    # Conversation History
-    st.sidebar.markdown("---")
-    if st.sidebar.checkbox("Show Conversation History"):
-        try:
-            history_response = make_request_with_retry(
-                requests.get,
-                f"{st.session_state.public_url}/conversation-history"
-            )
-
-            if history_response.status_code == 200:
-                history = history_response.json().get("conversation_history", [])
-                if history:
-                    st.markdown("### Conversation History")
-                    for i, conv in enumerate(reversed(history), 1):
-                        with st.expander(f"Q{i}: {conv['query'][:50]}...", expanded=False):
-                            st.markdown(f"**Question**: {conv['query']}")
-                            st.markdown(f"**Answer**: {conv['answer']}")
-                            st.markdown(f"**Time**: {conv['timestamp']}")
+    # Knowledge Base Management
+    st.markdown("---")
+    st.markdown("### Knowledge Base Management")
+    
+    with st.expander("Create New Knowledge Base"):
+        kb_name = st.text_input("Knowledge Base Name")
+        kb_desc = st.text_area("Knowledge Base Description")
+        if st.button("Create Knowledge Base"):
+            try:
+                response = make_request_with_retry(
+                    requests.post,
+                    f"{st.session_state.server_url}/knowledge-bases",
+                    data={
+                        "chatbot_id": st.session_state.chatbot_id,
+                        "name": kb_name,
+                        "description": kb_desc
+                    }
+                )
+                if response.status_code == 200:
+                    st.success(f"Knowledge base created successfully! ID: {response.json()['id']}")
                 else:
-                    st.info("No conversation history available.")
-        except Exception as e:
-            st.error(f"Error fetching conversation history: {str(e)}")
+                    st.error(f"Failed to create knowledge base: {response.text}")
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
