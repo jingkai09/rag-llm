@@ -1,8 +1,9 @@
 fastapi==0.95.0
 uvicorn==0.23.1
-requests==2.28.1
-streamlit==1.22.0
 langchain==0.0.169
 openai==0.27.4
 chromadb==0.3.21
 python-dotenv==0.21.1
+streamlit==1.31.0
+requests==2.31.0
+python-multipart==0.0.9
