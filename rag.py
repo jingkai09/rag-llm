@@ -63,60 +63,21 @@ else:
     st.sidebar.title("RAG System Configuration")
 
     # Parameters
-    temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.5)
-    k = st.sidebar.slider("Top k Results", 1, 20, 10)
-    chunk_overlap = st.sidebar.slider("Chunk Overlap", 0, 100, 50)
-    
-    # Default Score Configuration
-    st.sidebar.markdown("### Default Score Configuration")
-    st.session_state.default_score = st.sidebar.slider(
-        "Default Similarity Score",
-        0.0, 1.0, st.session_state.default_score,
-        help="Set default similarity score for chunks without scores"
-    )
-    
-    # Reranking Configuration
-    st.sidebar.markdown("### Reranking Configuration")
-    rerank_method = st.sidebar.radio(
-        "Reranking Method",
-        options=["semantic", "keywords"],
-        help="Choose between semantic similarity or keyword-based reranking"
-    )
-
-    # Keyword input section (shown only when keywords method is selected)
-    if rerank_method == "keywords":
-        st.sidebar.markdown("### Keyword Configuration")
-        keyword_input = st.sidebar.text_input(
-            "Enter keywords (comma-separated):",
-            help="Enter keywords to influence document ranking"
-        )
-        if keyword_input:
-            keywords = [k.strip() for k in keyword_input.split(",") if k.strip()]
-            if keywords != st.session_state.keywords:
-                st.session_state.keywords = keywords
-        
-        if st.session_state.keywords:
-            st.sidebar.markdown("**Current Keywords:**")
-            for keyword in st.session_state.keywords:
-                st.sidebar.markdown(f"- {keyword}")
+    temperature = st.sidebar.slider("Temperature", 0.0, 1.0, 0.2)  # Default is 0.2 (matches server default)
+    recall_num = st.sidebar.slider("Top-k Chunks to Retrieve", 1, 20, 5)  # Matches server's `recall_num`
 
     # Update parameters button
     if st.sidebar.button("Update Parameters"):
         try:
             params = {
                 "temperature": temperature,
-                "k": k,
-                "chunk_overlap": chunk_overlap,
-                "rerank_method": rerank_method
+                "recall_num": recall_num
             }
-            
-            if rerank_method == "keywords" and st.session_state.keywords:
-                params["keywords"] = st.session_state.keywords
 
             response = make_request_with_retry(
                 requests.post,
-                f"{st.session_state.public_url}/set-parameters",
-                json=params
+                f"{st.session_state.public_url}/api/chatbots/configure",  # Adjusted to match FastAPI endpoint
+                data=params
             )
 
             if response.status_code == 200:
@@ -139,54 +100,25 @@ else:
                 try:
                     response = make_request_with_retry(
                         requests.post,
-                        f"{st.session_state.public_url}/query",
-                        params={"query": user_query}
+                        f"{st.session_state.public_url}/api/query/user_id/chatbot_id",  # Adjusted for the FastAPI query endpoint
+                        data={"query": user_query}
                     )
 
-                    if response.status_code == 200:
+                    if response.status_code == 202:
                         result = response.json()
 
                         # Display answer
                         st.markdown("### Answer")
-                        st.write(result['answer'])
+                        st.write(result.get('answer', "No answer available."))
 
-                        # Display keywords
-                        if 'keywords' in result and result['keywords']:
-                            st.markdown("### Keywords")
-                            keyword_html = "<div style='display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;'>"
-                            for keyword in result['keywords']:
-                                keyword_html += f"<span style='background-color: #4A5568; color: white; padding: 4px 12px; border-radius: 16px; font-size: 0.9em;'>{keyword}</span>"
-                            keyword_html += "</div>"
-                            st.markdown(keyword_html, unsafe_allow_html=True)
-
-                        # Display chunks with enhanced information
-                        if 'chunks' in result and result['chunks']:
-                            st.markdown("### Retrieved Chunks")
-                            for chunk in result['chunks']:
-                                # Get chunk ID and score
-                                chunk_id = chunk.get('id', 'N/A')
-                                similarity_score = chunk.get('similarity_score', st.session_state.default_score)
-                                
-                                with st.expander(f"Chunk {chunk_id}", expanded=False):
-                                    # Display score and metadata at the top of expanded content
-                                    st.markdown(f"**Similarity Score**: {similarity_score:.3f}")
-                                    st.markdown(f"**Source**: {chunk['source']}")
-                                    
-                                    if rerank_method == "keywords" and "keyword_matches" in chunk:
-                                        st.markdown(f"**Matched Keywords**: {', '.join(chunk['keyword_matches'])}")
-                                    
-                                    # Highlight content based on keywords
-                                    content = chunk['content']
-                                    highlight_keywords = (st.session_state.keywords 
-                                                        if rerank_method == "keywords" 
-                                                        else result.get('keywords', []))
-                                    
-                                    for keyword in highlight_keywords:
-                                        content = content.replace(
-                                            keyword,
-                                            f"<span style='background-color: #4299E1; color: white; padding: 2px 4px; border-radius: 3px;'>{keyword}</span>"
-                                        )
-                                    st.markdown(f"**Content**: {content}", unsafe_allow_html=True)
+                        # Display retrieved documents
+                        chunks = result.get('documents', [])
+                        if chunks:
+                            st.markdown("### Retrieved Documents")
+                            for chunk in chunks:
+                                with st.expander(f"Document ID: {chunk['doc_id']}"):
+                                    st.markdown(f"**Similarity Score**: {chunk['similarity_score']}")
+                                    st.markdown(f"**Content Preview**: {chunk['content_preview']}")
                     else:
                         st.error(f"Error: {response.text}")
                 except Exception as e:
@@ -198,7 +130,7 @@ else:
         try:
             history_response = make_request_with_retry(
                 requests.get,
-                f"{st.session_state.public_url}/conversation-history"
+                f"{st.session_state.public_url}/api/task/task_id/status"  # Adjusted for the FastAPI conversation history endpoint
             )
 
             if history_response.status_code == 200:
